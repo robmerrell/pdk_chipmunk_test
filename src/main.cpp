@@ -1,69 +1,94 @@
 #include "SDL.h"
-#include <GLES/gl.h>
-
+#include "SDL_Image.h"
 #include "chipmunk/chipmunk.h"
-#include "chipmunk/drawSpace.h"
+#include <iostream>
+#include <vector>
 
-cpSpace *space;
-cpBody *staticBody;
-SDL_Event event;
+using namespace std;
+
+const float FRAMES_PER_SECOND = 60.0;
+
+const int SCREEN_WIDTH = 320;
+const int SCREEN_HEIGHT = 480;
+
+const int GRAVITY = 600; // gravity strength
+
+// making these a global because I'm lazy
+SDL_Surface *screen;
+vector <SDL_Surface*> balls;
+
+// update a shape's visual representation
+void updateShape(void *ptr, void* unused) {
+  cpShape *shape = (cpShape*)ptr;
+  
+  // make sure the shape is constructed correctly
+  if(shape == NULL || shape->body == NULL || shape->data == NULL) {
+    return;
+  }
+  
+  SDL_Surface *ball = (SDL_Surface*)shape->data;
+
+  // Use a temporary rectangle to pass our x and y to the offsets when blitting
+  SDL_Rect offset;
+  offset.x = shape->body->p.x;
+  offset.y = shape->body->p.y;
+  
+  SDL_BlitSurface(ball, NULL, screen, &offset);
+}
+
 
 int main(int argc, char* argv[]) {
-  // SDL setup
-  int error = SDL_Init(SDL_INIT_VIDEO); 
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
-  SDL_SetVideoMode(320, 480, 0, SDL_OPENGL); 
-  
-  
-  // opengl setup
-  glClearColor(0, 0, 0, 0); 
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrthof(0, 320, 480, 0, -1, 1);
-  
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  
-  glEnableClientState(GL_VERTEX_ARRAY);
-
-
   bool in_loop = true;
-  int mouse_x, mouse_y = 0;
+  
+  // SDL setup
+  SDL_Init(SDL_INIT_EVERYTHING);
+  screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
+  if (screen == NULL) return -1;
+  SDL_Event event;
+  
+  // chipmunk setup
+  cpSpace *space;
+  cpBody *body;
+  cpBody *borderBody; // body for the border around the outer edges of the screen
+  
+  cpInitChipmunk();
+  space = cpSpaceNew();
+  space->iterations = 10;
+  space->gravity = cpv(0, GRAVITY);
 
+  // gameloop
   while (in_loop) {
-    // fps.start();
-
     // capture the events and send the relevent tap events to the game scene
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT)
         in_loop = false;
+        
+      else if (event.type == SDL_MOUSEBUTTONDOWN) {
+        SDL_Surface *ball = IMG_Load("assets/ball.png");
+        
+        body = cpBodyNew(10.0f, INFINITY);
+        body->p = cpv(event.motion.x, event.motion.y);
+        cpSpaceAddBody(space, body);
+        
+        cpShape *shape = cpSpaceAddShape(space, cpCircleShapeNew(body, 20.0, cpvzero));
+        shape->e = 0.3f;
+        shape->u = 0.7f;
+        shape->data = ball;
+      }
     }
 
-    // move
-    cpSpaceStep(space, 1.0f/60.f);
-    // cpSpaceHashEach(space->activeShapes, &updateShape, NULL);
+    // recalculate the physics objects
+    cpSpaceStep(space, 1.0f/FRAMES_PER_SECOND);
+    cpSpaceHashEach(space->activeShapes, &updateShape, NULL);
 
-    // clear display
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // display
-    // drawSpaceOptions options = {0,0,1,4.0f,0.0f,1.5f,};
-    // drawSpace(space, &options);
+    // update the display
+    SDL_Flip(screen);
     
-    // update the screen
-    SDL_GL_SwapBuffers();
-
-    // frame++;
-
-    // delay to have a consistent framerate
-    // if (fps.get_ticks() < 1000 / ticks_per_sec) {
-    //   SDL_Delay((1000/ticks_per_sec) - fps.get_ticks());
-    // }
+    // cap the framerate
+    
   }
   
-
-
   SDL_Quit();
-
+  
   return 0;
 }

@@ -15,7 +15,7 @@ task :build do
     "-lchipmunk",
     "-lSDL",
     "-lSDLmain",
-    "-lGLES_CM"
+    "-lSDL_image"
   ]
   
   # get a list of cpp files to compile
