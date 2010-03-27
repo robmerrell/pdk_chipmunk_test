@@ -44,7 +44,6 @@ task :build_device do
     "-Lsrc/chipmunk/lib/device",
     "-lchipmunk",
     "-lSDL",
-    "-lSDLmain",
     "-lSDL_image",
     "-lpdl"
   ]
@@ -58,4 +57,18 @@ task :build_device do
   compile_cmd = "/opt/PalmPDK/arm-gcc/bin/arm-none-linux-gnueabi-gcc #{files.join(' ')} #{flags.join(' ')} -o #{output_name}"
   puts compile_cmd
   system(compile_cmd)
+end
+
+desc "Copy the app to the device and run the jerk"
+task :run do
+  copy_bin = "scp -r -P 10022 main root@localhost:/media/internal/pdk_chipmunk"
+  puts copy_bin
+  system(copy_bin)
+  
+  copy_asset = "scp -r -P 10022 assets/ball.gif root@localhost:/media/internal/pdk_chipmunk/assets"
+  puts copy_asset
+  system(copy_asset)
+  
+  run_cmd = "novacom run file:///media/internal/pdk_chipmunk/main"
+  system(run_cmd)
 end
