@@ -28,11 +28,13 @@ int main(int argc, char* argv[]) {
   float yForce;
 
   // create the file path to the ball image
-  char* app_dir;
-  PDL_GetCallingPath(app_dir, 256);
+  // Note: only get the PATH from PDL_GetCallingPath if on the device.  When building
+  // from the desktop just hardcode the ball_path variable. PDL_GetCallingPath
+  // only seems to work on the device.
+  char app_dir[255];
+  int ret = PDL_GetCallingPath(app_dir, 256);
   string ball_path(app_dir);
   ball_path.append("assets/ball.gif");
-  delete app_dir;
 
   // SDL setup
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
