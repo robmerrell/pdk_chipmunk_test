@@ -1,0 +1,10 @@
+{
+	"id": "com.trackera.chipmunk-test",
+	"version": "1.0.0",
+	"vendor": "Rob Merrell",
+	"type": "game",
+	"main": "main",
+	"title": "PDK Physics Test",
+	"icon": "icon.png",
+	"requiredMemory": "10"
+}
