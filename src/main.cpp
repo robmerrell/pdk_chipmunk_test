@@ -1,5 +1,6 @@
+#include "PDL.h"
 #include "SDL.h"
-#include "SDL_Image.h"
+#include "SDL_image.h"
 #include "chipmunk/chipmunk.h"
 #include <iostream>
 #include <vector>
@@ -10,24 +11,102 @@ const float FRAMES_PER_SECOND = 60.0;
 
 const int SCREEN_WIDTH = 320;
 const int SCREEN_HEIGHT = 480;
+const int PADDING = 20;
 
 const int GRAVITY = 600; // gravity strength
 
-// making these a global because I'm lazy
+// making these global because I'm lazy
 SDL_Surface *screen;
-vector <SDL_Surface*> balls;
+SDL_Surface *ball;
+
+void updateShape(void*, void*);
+void defineBorders(cpSpace*);
+
+int main(int argc, char* argv[]) {
+  bool in_loop = true;
+  float xForce;                     
+  float yForce;
+
+  // SDL setup
+  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
+  screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
+  if (screen == NULL) return -1;
+  SDL_Event event;
+  SDL_Joystick *joystick = SDL_JoystickOpen(0);
+  ball = IMG_Load("assets/ball.gif");
+  
+  // chipmunk setup
+  cpSpace *space;
+  cpBody *body;
+  
+  cpInitChipmunk();
+  space = cpSpaceNew();
+  space->iterations = 10;
+  space->elasticIterations = 10;
+  space->gravity = cpv(0, GRAVITY);
+  
+  defineBorders(space);
+  
+  // gameloop
+  while (in_loop) {
+    // get data from the accelerometer
+    xForce = (float) SDL_JoystickGetAxis(joystick, 0) / 32768.0;                     
+    yForce = (float) SDL_JoystickGetAxis(joystick, 1) / 32768.0;
+    
+    space->gravity = cpv(xForce * GRAVITY, yForce * GRAVITY);
+    
+    // capture the events and send the relevent tap events to the game scene
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT)
+        in_loop = false;
+        
+      else if (event.type == SDL_MOUSEBUTTONDOWN) {
+        if ((event.motion.x > PADDING && event.motion.x < SCREEN_WIDTH - PADDING) &&
+            (event.motion.y > PADDING && event.motion.y < SCREEN_HEIGHT - PADDING)) {
+          body = cpBodyNew(10.0f, INFINITY);
+          body->p = cpv(event.motion.x, event.motion.y);
+          cpSpaceAddBody(space, body);
+        
+          cpShape *shape = cpSpaceAddShape(space, cpCircleShapeNew(body, 20.0, cpvzero));
+          shape->e = 0.3f;
+          shape->u = 0.1f;
+        }
+      }
+    }
+
+    // clear the screen
+    SDL_FillRect(SDL_GetVideoSurface(), NULL, 0);
+
+    // recalculate the physics objects
+    cpSpaceStep(space, 1.0f/FRAMES_PER_SECOND);
+    cpSpaceHashEach(space->activeShapes, &updateShape, NULL);
+    
+    // update the display
+    SDL_Flip(screen);
+  }
+  
+  // shutdown Chipmunk
+  cpSpaceFreeChildren(space);
+  cpSpaceFree(space);
+
+  // shutdown SDL
+  SDL_FreeSurface(ball);
+  PDL_Quit();
+  SDL_Quit();
+  
+  return 0;
+}
+
 
 // update a shape's visual representation
 void updateShape(void *ptr, void* unused) {
   cpShape *shape = (cpShape*)ptr;
   
   // make sure the shape is constructed correctly
-  if(shape == NULL || shape->body == NULL || shape->data == NULL) {
+  if(shape == NULL || shape->body == NULL) {
     return;
   }
   
-  SDL_Surface *ball = (SDL_Surface*)shape->data;
-
   // Use a temporary rectangle to pass our x and y to the offsets when blitting
   SDL_Rect offset;
   offset.x = shape->body->p.x;
@@ -37,58 +116,29 @@ void updateShape(void *ptr, void* unused) {
 }
 
 
-int main(int argc, char* argv[]) {
-  bool in_loop = true;
+// create borders around the screen
+void defineBorders(cpSpace *space) {
+  cpBody *body = cpBodyNew(INFINITY, INFINITY);
+  float border_elasticity = 0.3f;
+  float border_friction = 1.0f;
   
-  // SDL setup
-  SDL_Init(SDL_INIT_EVERYTHING);
-  screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
-  if (screen == NULL) return -1;
-  SDL_Event event;
+  // top border
+  cpShape *border_top = cpSegmentShapeNew(body, cpv(PADDING, PADDING), cpv(SCREEN_WIDTH - PADDING, PADDING), 1.0f);
+  border_top->e = border_elasticity; border_top->u = border_friction;
+  cpSpaceAddStaticShape(space, border_top);
   
-  // chipmunk setup
-  cpSpace *space;
-  cpBody *body;
-  cpBody *borderBody; // body for the border around the outer edges of the screen
+  // right border
+  cpShape *border_right = cpSegmentShapeNew(body, cpv(SCREEN_WIDTH - PADDING, PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  border_right->e = border_elasticity; border_right->u = border_friction;
+  cpSpaceAddStaticShape(space, border_right);
   
-  cpInitChipmunk();
-  space = cpSpaceNew();
-  space->iterations = 10;
-  space->gravity = cpv(0, GRAVITY);
-
-  // gameloop
-  while (in_loop) {
-    // capture the events and send the relevent tap events to the game scene
-    while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT)
-        in_loop = false;
-        
-      else if (event.type == SDL_MOUSEBUTTONDOWN) {
-        SDL_Surface *ball = IMG_Load("assets/ball.png");
-        
-        body = cpBodyNew(10.0f, INFINITY);
-        body->p = cpv(event.motion.x, event.motion.y);
-        cpSpaceAddBody(space, body);
-        
-        cpShape *shape = cpSpaceAddShape(space, cpCircleShapeNew(body, 20.0, cpvzero));
-        shape->e = 0.3f;
-        shape->u = 0.7f;
-        shape->data = ball;
-      }
-    }
-
-    // recalculate the physics objects
-    cpSpaceStep(space, 1.0f/FRAMES_PER_SECOND);
-    cpSpaceHashEach(space->activeShapes, &updateShape, NULL);
-
-    // update the display
-    SDL_Flip(screen);
-    
-    // cap the framerate
-    
-  }
+  // bottom border
+  cpShape *border_bottom = cpSegmentShapeNew(body, cpv(PADDING, SCREEN_HEIGHT - PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  border_bottom->e = border_elasticity; border_bottom->u = border_friction;
+  cpSpaceAddStaticShape(space, border_bottom);
   
-  SDL_Quit();
-  
-  return 0;
+  // left border
+  cpShape *border_left = cpSegmentShapeNew(body, cpv(PADDING, PADDING), cpv(PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  border_left->e = border_elasticity; border_left->u = border_friction;
+  cpSpaceAddStaticShape(space, border_left);
 }
