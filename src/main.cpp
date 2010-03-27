@@ -27,13 +27,20 @@ int main(int argc, char* argv[]) {
   float xForce;                     
   float yForce;
 
+  // create the file path to the ball image
+  char* app_dir;
+  PDL_GetCallingPath(app_dir, 256);
+  string ball_path(app_dir);
+  ball_path.append("assets/ball.gif");
+  delete app_dir;
+
   // SDL setup
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
   screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
   if (screen == NULL) return -1;
   SDL_Event event;
   SDL_Joystick *joystick = SDL_JoystickOpen(0);
-  ball = IMG_Load("assets/ball.gif");
+  ball = IMG_Load(ball_path.c_str());
   
   // chipmunk setup
   cpSpace *space;
