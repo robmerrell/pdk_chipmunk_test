@@ -123,22 +123,22 @@ void defineBorders(cpSpace *space) {
   float border_friction = 1.0f;
   
   // top border
-  cpShape *border_top = cpSegmentShapeNew(body, cpv(PADDING, PADDING), cpv(SCREEN_WIDTH - PADDING, PADDING), 1.0f);
+  cpShape *border_top = cpSegmentShapeNew(body, cpv(-PADDING, -PADDING), cpv(SCREEN_WIDTH - PADDING, -PADDING), 1.0f);
   border_top->e = border_elasticity; border_top->u = border_friction;
   cpSpaceAddStaticShape(space, border_top);
   
   // right border
-  cpShape *border_right = cpSegmentShapeNew(body, cpv(SCREEN_WIDTH - PADDING, PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  cpShape *border_right = cpSegmentShapeNew(body, cpv(SCREEN_WIDTH - PADDING, -PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
   border_right->e = border_elasticity; border_right->u = border_friction;
   cpSpaceAddStaticShape(space, border_right);
   
   // bottom border
-  cpShape *border_bottom = cpSegmentShapeNew(body, cpv(PADDING, SCREEN_HEIGHT - PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  cpShape *border_bottom = cpSegmentShapeNew(body, cpv(-PADDING, SCREEN_HEIGHT - PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
   border_bottom->e = border_elasticity; border_bottom->u = border_friction;
   cpSpaceAddStaticShape(space, border_bottom);
   
   // left border
-  cpShape *border_left = cpSegmentShapeNew(body, cpv(PADDING, PADDING), cpv(PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  cpShape *border_left = cpSegmentShapeNew(body, cpv(-PADDING, -PADDING), cpv(-PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
   border_left->e = border_elasticity; border_left->u = border_friction;
   cpSpaceAddStaticShape(space, border_left);
 }
