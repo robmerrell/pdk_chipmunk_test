@@ -72,3 +72,18 @@ task :run do
   run_cmd = "novacom run file:///media/internal/pdk_chipmunk/main"
   system(run_cmd)
 end
+
+desc "Create and install a package to the device"
+task :pkg do
+  pdk_bin = "/opt/PalmPDK/bin"
+  
+  # copy the executable and asset file to the package dir
+  system("cp main chipmunk_test")
+  system("cp assets/ball.gif chipmunk_test/assets")
+
+  puts "packaging..."
+  system("#{pdk_bin}/pdk-package chipmunk_test")
+  
+  puts "installing..."
+  system("#{pdk_bin}/pdk-install com.trackera.chipmunk-test_1.0.0_all.ipk")
+end
