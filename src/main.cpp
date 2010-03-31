@@ -1,7 +1,7 @@
 #include "PDL.h"
 #include "SDL.h"
 #include "SDL_image.h"
-#include "chipmunk/chipmunk.h"
+#include "chipmunk/headers/chipmunk.h"
 #include <iostream>
 #include <vector>
 

@@ -4,23 +4,29 @@ require "fileutils"
 $pdk_path = "/opt/PalmPDK"
  
 task :arch_settings do
-  if ENV["PRE"]
+  if ENV["TARGET"] == "pre"
     $arch_settings = "-mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
     $cc = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-gcc"
+    $cc = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-g++"
     $ar = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-ar"
-  elsif ENV["PIXI"]
+    $ranlib = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-ranlib"
+  elsif ENV["TARGET"] == "pixi"
     $arch_settings = "-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp"
     $cc = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-gcc"
+    $cc = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-g++"
     $ar = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-ar"
+    $ranlib = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-ranlib"
   else
     $arch_settings = "-arch i386"
     $cc = "gcc"
+    $gpp = "g++"
     $ar = "ar"
+    $ranlib = "ranlib"
   end
 end
  
  
-desc "Build and create a static library of the Chipmunk physics engine"
+desc "Build and create a static library of the Chipmunk physics engine. TARGET=pre, pixi or host(mac); host is assumed if TARGET is not set"
 file :build_chipmunk => :arch_settings do
   flags = [
     "-Wno-write-strings",
@@ -48,6 +54,52 @@ file :build_chipmunk => :arch_settings do
   cmd = "#{$ar} cr build/libchipmunk.a #{files.join(' ')}"
   puts cmd
   system cmd
+  
+  # do ranlib on the library
+  cmd = "#{$ranlib} build/libchipmunk.a"
+  puts cmd
+  system cmd
+end
+
+
+desc "Build the main project and chipmunk if needed"
+task :build => :arch_settings do
+  # build the chipmunk lib if we can't find build/libchipmunk.a
+  if !FileTest.exists? "build/libchipmunk.a"
+    Rake::Task[:build_chipmunk].invoke
+  end
+  
+  flags = [
+    "-I#{$pdk_path}/include",
+    "-I#{$pdk_path}/include/SDL",
+    "-Lbuild",
+    "-lchipmunk",
+    "-lSDL",
+    "-lSDL_image",
+    "-lpdl"
+  ]
+  
+  if ENV["TARGET"] == "pre" || ENV["TARGET"] == "pixi"
+    flags << "-L#{$pdk_path}/device/lib -Wl,--allow-shlib-undefined"
+    flags << "--sysroot=#{$pdk_path}/arm-gcc/sysroot"
+  else
+    flags << "-L#{$pdk_path}/host/lib"
+    flags << "-lSDL_image"
+    flags << "-framework cocoa"
+    flags << "-lSDLmain"
+  end
+  
+  cmd = "#{$gpp} src/main.cpp #{$arch_settings} #{flags.join(' ')} -o main"
+  puts cmd
+  system(cmd)
+end
+
+
+desc "Clean build files by removing the build directory"
+task :clean do
+  puts "removing build files..."
+  FileUtils.rmtree "build"
+  FileUtils.rm "main"
 end
 
 
