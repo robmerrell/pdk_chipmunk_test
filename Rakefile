@@ -1,35 +1,53 @@
 require "rake"
-
-# all tasks accept the following arguments:
-# PRE
-# PIXI
-# MAC assumed
-
+require "fileutils"
+ 
+$pdk_path = "/opt/PalmPDK"
+ 
 task :arch_settings do
   if ENV["PRE"]
     $arch_settings = "-mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
+    $cc = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-gcc"
+    $ar = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-ar"
   elsif ENV["PIXI"]
     $arch_settings = "-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp"
+    $cc = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-gcc"
+    $ar = "#{$pdk_path}/arm-gcc/bin/arm-none-linux-gnueabi-ar"
   else
-    $arch_settings = "-framework cocoa -arch i386 -lSDLmain"
+    $arch_settings = "-arch i386"
+    $cc = "gcc"
+    $ar = "ar"
   end
 end
-
-
-# add a
-FileList["src/chipmunk/**/*.c"].each do |src|
-	file :build_chipmunk => src
-end
-
+ 
+ 
 desc "Build and create a static library of the Chipmunk physics engine"
-file :build_chipmunk do
+file :build_chipmunk => :arch_settings do
   flags = [
     "-Wno-write-strings",
-    "-Ichipmunk/headers"
+    "-Isrc/chipmunk/headers",
+    "-std=gnu99",
+    "-O3",
+    "-DNDEBUG",
+    "-ffast-math"
   ]
   
-  # puts "blah"
-  # build chipmunk
+  # compile all of the files
+  files = Dir.glob("src/chipmunk/**/*.c")
+  files.each do |file|
+    # make sure the dir exists for the object file
+    dir_name = file.gsub(File.basename(file), '')
+    FileUtils.mkdir_p "build/#{dir_name}"
+    
+    cmd = "#{$cc} #{$arch_settings} #{flags.join(' ')} -c #{file} -o build/#{file}.o"
+    puts cmd
+    system cmd
+  end
+  
+  # create libchipmunk.a out of the compiled files
+  files = Dir.glob("build/src/chipmunk/**/*.o")
+  cmd = "#{$ar} cr build/libchipmunk.a #{files.join(' ')}"
+  puts cmd
+  system cmd
 end
 
 
