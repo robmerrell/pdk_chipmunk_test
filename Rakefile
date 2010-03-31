@@ -26,7 +26,7 @@ task :arch_settings do
 end
  
  
-desc "Build and create a static library of the Chipmunk physics engine. TARGET=pre, pixi or host(mac); host is assumed if TARGET is not set"
+desc "Create a static library for the Chipmunk physics engine TARGET=pre, pixi or host(mac); host is assumed if TARGET is not set"
 file :build_chipmunk => :arch_settings do
   flags = [
     "-Wno-write-strings",
@@ -62,7 +62,7 @@ file :build_chipmunk => :arch_settings do
 end
 
 
-desc "Build the main project and chipmunk if needed"
+desc "Build the main project and chipmunk if needed TARGET=pre, pixi or host(mac); host is assumed if TARGET is not set"
 task :build => :arch_settings do
   # build the chipmunk lib if we can't find build/libchipmunk.a
   if !FileTest.exists? "build/libchipmunk.a"
