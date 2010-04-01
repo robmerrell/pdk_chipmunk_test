@@ -38,7 +38,15 @@ int main(int argc, char* argv[]) {
 
   // SDL setup
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
-  screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
+  
+  #ifdef DEVICE
+    screen = SDL_SetVideoMode(0, 0, 0, 0);
+    cout << "device" << endl;
+  #else
+    screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
+    cout << "host" << endl;
+  #endif
+  
   if (screen == NULL) return -1;
   SDL_Event event;
   SDL_Joystick *joystick = SDL_JoystickOpen(0);

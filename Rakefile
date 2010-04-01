@@ -70,6 +70,7 @@ task :build => :arch_settings do
   end
   
   flags = [
+    "-Wno-write-strings",
     "-I#{$pdk_path}/include",
     "-I#{$pdk_path}/include/SDL",
     "-Lbuild",
@@ -82,6 +83,7 @@ task :build => :arch_settings do
   if ENV["TARGET"] == "pre" || ENV["TARGET"] == "pixi"
     flags << "-L#{$pdk_path}/device/lib -Wl,--allow-shlib-undefined"
     flags << "--sysroot=#{$pdk_path}/arm-gcc/sysroot"
+    flags << "-DDEVICE"
   else
     flags << "-L#{$pdk_path}/host/lib"
     flags << "-lSDL_image"
@@ -103,7 +105,7 @@ task :clean do
 end
 
 
-desc "Copy the app to the device and run the jerk"
+desc "Copy the app to /media/internal on the device without creating a package and run the jerk"
 task :run do
   copy_bin = "scp -r -P 10022 main root@localhost:/media/internal/pdk_chipmunk"
   puts copy_bin
