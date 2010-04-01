@@ -9,8 +9,6 @@ using namespace std;
 
 const float FRAMES_PER_SECOND = 60.0;
 
-const int SCREEN_WIDTH = 320;
-const int SCREEN_HEIGHT = 480;
 const int PADDING = 20;
 
 const int GRAVITY = 600; // gravity strength
@@ -31,10 +29,14 @@ int main(int argc, char* argv[]) {
   // Note: only get the PATH from PDL_GetCallingPath if on the device.  When building
   // from the desktop just hardcode the ball_path variable. PDL_GetCallingPath
   // only seems to work on the device.
-  char app_dir[255];
-  int ret = PDL_GetCallingPath(app_dir, 256);
-  string ball_path(app_dir);
-  ball_path.append("assets/ball.gif");
+  #ifdef DEVICE
+    char app_dir[255];
+    int ret = PDL_GetCallingPath(app_dir, 256);
+    string ball_path(app_dir);
+    ball_path.append("assets/ball.gif");
+  #else
+    string ball_path("assets/ball.gif");
+  #endif
 
   // SDL setup
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
@@ -43,11 +45,12 @@ int main(int argc, char* argv[]) {
     screen = SDL_SetVideoMode(0, 0, 0, 0);
     cout << "device" << endl;
   #else
-    screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0);
+    screen = SDL_SetVideoMode(320, 480, 32, 0);
     cout << "host" << endl;
   #endif
   
   if (screen == NULL) return -1;
+  const SDL_VideoInfo* video_info = SDL_GetVideoInfo();
   SDL_Event event;
   SDL_Joystick *joystick = SDL_JoystickOpen(0);
   ball = IMG_Load(ball_path.c_str());
@@ -78,8 +81,8 @@ int main(int argc, char* argv[]) {
         in_loop = false;
         
       else if (event.type == SDL_MOUSEBUTTONDOWN) {
-        if ((event.motion.x > PADDING && event.motion.x < SCREEN_WIDTH - PADDING) &&
-            (event.motion.y > PADDING && event.motion.y < SCREEN_HEIGHT - PADDING)) {
+        if ((event.motion.x > PADDING && event.motion.x < video_info->current_w - PADDING) &&
+            (event.motion.y > PADDING && event.motion.y < video_info->current_h - PADDING)) {
           body = cpBodyNew(10.0f, INFINITY);
           body->p = cpv(event.motion.x, event.motion.y);
           cpSpaceAddBody(space, body);
@@ -138,24 +141,25 @@ void defineBorders(cpSpace *space) {
   cpBody *body = cpBodyNew(INFINITY, INFINITY);
   float border_elasticity = 0.3f;
   float border_friction = 1.0f;
+  const SDL_VideoInfo* video_info = SDL_GetVideoInfo();
   
   // top border
-  cpShape *border_top = cpSegmentShapeNew(body, cpv(-PADDING, -PADDING), cpv(SCREEN_WIDTH - PADDING, -PADDING), 1.0f);
+  cpShape *border_top = cpSegmentShapeNew(body, cpv(-PADDING, -PADDING), cpv(video_info->current_w - PADDING, -PADDING), 1.0f);
   border_top->e = border_elasticity; border_top->u = border_friction;
   cpSpaceAddStaticShape(space, border_top);
   
   // right border
-  cpShape *border_right = cpSegmentShapeNew(body, cpv(SCREEN_WIDTH - PADDING, -PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  cpShape *border_right = cpSegmentShapeNew(body, cpv(video_info->current_w - PADDING, -PADDING), cpv(video_info->current_w - PADDING, video_info->current_h - PADDING), 1.0f);
   border_right->e = border_elasticity; border_right->u = border_friction;
   cpSpaceAddStaticShape(space, border_right);
   
   // bottom border
-  cpShape *border_bottom = cpSegmentShapeNew(body, cpv(-PADDING, SCREEN_HEIGHT - PADDING), cpv(SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  cpShape *border_bottom = cpSegmentShapeNew(body, cpv(-PADDING, video_info->current_h - PADDING), cpv(video_info->current_w - PADDING, video_info->current_h - PADDING), 1.0f);
   border_bottom->e = border_elasticity; border_bottom->u = border_friction;
   cpSpaceAddStaticShape(space, border_bottom);
   
   // left border
-  cpShape *border_left = cpSegmentShapeNew(body, cpv(-PADDING, -PADDING), cpv(-PADDING, SCREEN_HEIGHT - PADDING), 1.0f);
+  cpShape *border_left = cpSegmentShapeNew(body, cpv(-PADDING, -PADDING), cpv(-PADDING, video_info->current_h - PADDING), 1.0f);
   border_left->e = border_elasticity; border_left->u = border_friction;
   cpSpaceAddStaticShape(space, border_left);
 }
