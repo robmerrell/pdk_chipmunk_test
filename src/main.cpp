@@ -43,10 +43,8 @@ int main(int argc, char* argv[]) {
   
   #ifdef DEVICE
     screen = SDL_SetVideoMode(0, 0, 0, 0);
-    cout << "device" << endl;
   #else
     screen = SDL_SetVideoMode(320, 480, 32, 0);
-    cout << "host" << endl;
   #endif
   
   if (screen == NULL) return -1;
